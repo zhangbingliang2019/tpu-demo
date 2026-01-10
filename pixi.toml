@@ -1,41 +1,19 @@
 [project]
-name = "tpu-cifar10-vae"
+name = "tpu-jax-y2x"
 version = "0.1.0"
-description = "JAX/Flax VAE training on CIFAR-10 (TPU multi-host ready)."
-requires-python = ">=3.10,<3.12"
-
-[tool.pixi.project]
+description = "JAX multi-host TPU training demo"
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
-[tool.pixi.dependencies]
-python = ">=3.10,<3.12"
+[dependencies]
+python = "3.10.*"
+pip = "*"
 
-[pypi-options]
-find-links = [
-  { url = "https://storage.googleapis.com/jax-releases/libtpu_releases.html" }
-]
+[tasks]
+install-deps = """
+python -m pip install --upgrade pip && \
+python -m pip install -U "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html && \
+python -m pip install -U optax numpy
+"""
 
-[tool.pixi.pypi-dependencies]
-jax = { version = "*", extras = ["tpu"] }
-
-flax = "*"
-optax = "*"
-orbax-checkpoint = "*"
-
-tensorflow-cpu = "*"
-tensorflow-datasets = "*"
-
-pillow = "*"
-tqdm = "*"
-rich = "*"
-
-[tool.pixi.tasks]
-# Explicit dependency installation step
-install-deps = "pixi install"
-
-# Match your launcher: pixi run python train.py
-python = "python"
-
-# Optional helpers
-devices = "python -c \"import jax; print('process_count=', jax.process_count()); print('process_index=', jax.process_index()); print('devices=', jax.devices())\""
+train = "python train.py"

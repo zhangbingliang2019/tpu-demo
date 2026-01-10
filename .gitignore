@@ -3,7 +3,7 @@
 ############################
 
 # Ignore all scripts (launch scripts, cluster scripts, etc.)
-scripts/*
+scripts/
 
 # Experiment outputs
 runs/
