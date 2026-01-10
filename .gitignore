@@ -1,0 +1,61 @@
+############################
+# Project-specific ignores
+############################
+
+# Ignore all scripts (launch scripts, cluster scripts, etc.)
+scripts/
+
+# Experiment outputs
+runs/
+outputs/
+logs/
+
+############################
+# Pixi / Python
+############################
+
+# Pixi environment and cache
+.pixi/
+.pixi-lock/
+pixi.lock
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments (just in case)
+.venv/
+venv/
+env/
+
+############################
+# JAX / ML artifacts
+############################
+
+# Checkpoints
+checkpoints/
+*.ckpt
+
+# Generated images / samples
+samples/
+*.png
+*.jpg
+
+############################
+# Editors / OS
+############################
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# macOS
+.DS_Store
+
+# Linux
+*.swp
+*~
