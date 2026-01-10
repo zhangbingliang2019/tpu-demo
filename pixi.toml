@@ -2,18 +2,44 @@
 name = "tpu-jax-y2x"
 version = "0.1.0"
 description = "JAX multi-host TPU training demo"
+
+[tool.pixi.project]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
-[dependencies]
+[tool.pixi.dependencies]
 python = "3.10.*"
-pip = "*"
 
-[tasks]
-install-deps = """
-python -m pip install --upgrade pip && \
-python -m pip install -U "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html && \
-python -m pip install -U optax numpy
-"""
+# This replaces: pip install -f https://storage.googleapis.com/...
+[pypi-options]
+find-links = [
+  { url = "https://storage.googleapis.com/jax-releases/libtpu_releases.html" }
+]
 
+[tool.pixi.pypi-dependencies]
+# JAX TPU build
+jax = { version = "*", extras = ["tpu"] }
+
+# Core ML stack
+flax = "*"
+optax = "*"
+numpy = "*"
+
+# Data
+tensorflow-cpu = "*"
+tensorflow-datasets = "*"
+
+# Image / logging
+pillow = "*"
+tqdm = "*"
+rich = "*"
+
+[tool.pixi.tasks]
+# One canonical install entrypoint
+install-deps = "pixi install"
+
+# Training entrypoint
 train = "python train.py"
+
+# Optional: quick TPU sanity check
+devices = "python -c \"import jax; print(jax.process_count(), jax.process_index()); print(jax.devices())\""
