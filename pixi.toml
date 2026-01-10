@@ -1,0 +1,41 @@
+[project]
+name = "tpu-cifar10-vae"
+version = "0.1.0"
+description = "JAX/Flax VAE training on CIFAR-10 (TPU multi-host ready)."
+requires-python = ">=3.10,<3.12"
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.dependencies]
+python = ">=3.10,<3.12"
+
+[pypi-options]
+find-links = [
+  { url = "https://storage.googleapis.com/jax-releases/libtpu_releases.html" }
+]
+
+[tool.pixi.pypi-dependencies]
+jax = { version = "*", extras = ["tpu"] }
+
+flax = "*"
+optax = "*"
+orbax-checkpoint = "*"
+
+tensorflow-cpu = "*"
+tensorflow-datasets = "*"
+
+pillow = "*"
+tqdm = "*"
+rich = "*"
+
+[tool.pixi.tasks]
+# Explicit dependency installation step
+install-deps = "pixi install"
+
+# Match your launcher: pixi run python train.py
+python = "python"
+
+# Optional helpers
+devices = "python -c \"import jax; print('process_count=', jax.process_count()); print('process_index=', jax.process_index()); print('devices=', jax.devices())\""
