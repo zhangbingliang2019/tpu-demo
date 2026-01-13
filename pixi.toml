@@ -1,7 +1,7 @@
 [project]
 name = "tpu-demo"
 version = "0.1.0"
-description = "JAX multi-host TPU training demo"
+description = "JAX DDPM diffusion model training on multi-host TPU (256 chips / 32 workers)"
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
@@ -10,13 +10,65 @@ python = "3.10.*"
 pip = "*"
 
 [tasks]
-# Install everything needed for CIFAR-10 VAE/DDPM training on TPU via pip.
+# =============================================================================
+# INSTALLATION TASKS
+# =============================================================================
+
+# Install all dependencies for DDPM training on TPU via pip.
+# This includes:
+#   - jax[tpu]: JAX with TPU support (libtpu)
+#   - flax: Neural network library for JAX
+#   - optax: Gradient processing and optimization
+#   - tensorflow-cpu: For tf.data pipeline (CPU-only to avoid GPU memory conflicts)
+#   - tensorflow-datasets: CIFAR-10 dataset loader
+#   - pillow: Image saving for sample grids
+#   - rich: Beautiful terminal logging
+#   - wandb: Weights & Biases experiment tracking
 install-deps = """
 python -m pip install --upgrade pip && \
 python -m pip install -U "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html && \
-python -m pip install -U flax optax orbax-checkpoint numpy && \
-python -m pip install -U tensorflow-cpu tensorflow-datasets pillow tqdm rich
+python -m pip install -U flax optax numpy && \
+python -m pip install -U tensorflow-cpu tensorflow-datasets pillow rich wandb
 """
 
-train = "python train.py"
-devices = "python -c \"import jax; print('process_count=', jax.process_count()); print('process_index=', jax.process_index()); print(jax.devices())\""
+# =============================================================================
+# VERIFICATION TASKS
+# =============================================================================
+
+# Check JAX can see all TPU devices (run on all workers to verify multi-host setup)
+devices = """
+python -c "
+import jax
+print('=' * 60)
+print('JAX TPU DEVICE VERIFICATION')
+print('=' * 60)
+print(f'Process count (total workers): {jax.process_count()}')
+print(f'Process index (this worker):   {jax.process_index()}')
+print(f'Device count (global TPUs):    {jax.device_count()}')
+print(f'Local device count (per host): {jax.local_device_count()}')
+print('-' * 60)
+print('Local devices:')
+for d in jax.local_devices():
+    print(f'  {d}')
+print('=' * 60)
+"
+"""
+
+# =============================================================================
+# TRAINING TASKS
+# =============================================================================
+
+# Run DDPM training on CIFAR-10 (default hyperparameters for 256 TPU chips)
+train = "python train_ddpm_cifar10.py"
+
+# Run with custom batch size (recommended: 8192 for 256 TPUs = 32 per chip)
+train-large = "python train_ddpm_cifar10.py --batch_size_global 8192 --epochs 100"
+
+# Quick test run (small batch, few steps) to verify setup
+train-test = "python train_ddpm_cifar10.py --batch_size_global 256 --epochs 1 --log_every 10 --sample_every 50"
+
+# Training with Weights & Biases logging enabled
+train-wandb = "python train_ddpm_cifar10.py --use_wandb --wandb_project ddpm-cifar10"
+
+# Full training with W&B (recommended for production runs)
+train-large-wandb = "python train_ddpm_cifar10.py --batch_size_global 8192 --epochs 100 --use_wandb --wandb_project ddpm-cifar10"
