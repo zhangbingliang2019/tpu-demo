@@ -1709,6 +1709,28 @@ def main():
         wandb.finish()
         logger.info("W&B run finished and synced.")
 
+    # =========================================================================
+    # CLEAN SHUTDOWN FOR MULTI-HOST TPU
+    # =========================================================================
+    # Synchronize all hosts before exit to avoid "GetSliceInfo" errors.
+    # This ensures all workers finish at the same time.
+
+    if jax.process_count() > 1:
+        logger.info("Synchronizing all workers before exit...")
+
+        # Create a simple barrier by doing a collective operation
+        # This forces all hosts to sync before any can exit
+        x = jnp.ones((1,))
+        x = jax.pmap(lambda x: jax.lax.psum(x, axis_name='i'), axis_name='i')(
+            x[None].repeat(jax.local_device_count(), axis=0)
+        )
+        x.block_until_ready()
+
+        # Small delay to ensure all logging/IO completes
+        time.sleep(2)
+
+        logger.info("All workers synchronized. Exiting cleanly.")
+
     logger.close()
 
 
