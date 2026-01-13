@@ -247,8 +247,14 @@ def preprocess_example(example: Dict[str, Any], training: bool) -> Dict[str, Any
     - Scale to [-1, 1] (consistent with DDPM script, but fine for classification)
     """
     image = tf.cast(example["image"], tf.float32) / 255.0
+
     if training:
+        # Standard CIFAR-10 augmentation: padding + random crop + horizontal flip
+        image = tf.pad(image, [[4, 4], [4, 4], [0, 0]], mode="REFLECT")
+        image = tf.image.random_crop(image, [32, 32, 3])
         image = tf.image.random_flip_left_right(image)
+
+    # Keep the same [-1, 1] normalization convention as the DDPM script
     image = image * 2.0 - 1.0
 
     label = tf.cast(example["label"], tf.int32)
@@ -342,17 +348,27 @@ class CIFAR10CNN(nn.Module):
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, train: bool) -> jnp.ndarray:
-        x = nn.Conv(self.base_channels, (3, 3), padding="SAME")(x)
-        x = nn.relu(x)
-        x = nn.Conv(self.base_channels, (3, 3), padding="SAME")(x)
-        x = nn.relu(x)
-        x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2), padding="VALID")
+        """A slightly deeper CNN with BatchNorm, good enough for >80% on CIFAR-10."""
 
-        x = nn.Conv(self.base_channels * 2, (3, 3), padding="SAME")(x)
-        x = nn.relu(x)
-        x = nn.Conv(self.base_channels * 2, (3, 3), padding="SAME")(x)
-        x = nn.relu(x)
-        x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2), padding="VALID")
+        def conv_block(x, channels: int) -> jnp.ndarray:
+            x = nn.Conv(channels, (3, 3), padding="SAME", use_bias=False)(x)
+            x = nn.BatchNorm(use_running_average=not train)(x)
+            x = nn.relu(x)
+            x = nn.Conv(channels, (3, 3), padding="SAME", use_bias=False)(x)
+            x = nn.BatchNorm(use_running_average=not train)(x)
+            x = nn.relu(x)
+            return x
+
+        # 32x32 -> 16x16
+        x = conv_block(x, self.base_channels)          # 32x32, C
+        x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2), padding="VALID")  # 16x16
+
+        # 16x16 -> 8x8
+        x = conv_block(x, self.base_channels * 2)      # 16x16, 2C
+        x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2), padding="VALID")  # 8x8
+
+        # 8x8, higher channels
+        x = conv_block(x, self.base_channels * 4)      # 8x8, 4C
 
         # Global average pooling
         x = x.mean(axis=(1, 2))
