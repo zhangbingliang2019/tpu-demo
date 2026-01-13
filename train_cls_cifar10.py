@@ -422,7 +422,10 @@ def train_step(
     # All-reduce across devices
     grads = jax.lax.pmean(grads, axis_name="data")
     loss = jax.lax.pmean(loss, axis_name="data")
-    metrics = jax.tree_map(lambda x: jax.lax.pmean(x, axis_name="data"), metrics)
+    # jax.tree_map was removed in newer JAX; use tree_util.tree_map for compatibility.
+    metrics = jax.tree_util.tree_map(
+        lambda x: jax.lax.pmean(x, axis_name="data"), metrics
+    )
 
     new_state = state.apply_gradients(grads=grads)
 
