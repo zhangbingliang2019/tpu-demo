@@ -348,14 +348,15 @@ class CIFAR10CNN(nn.Module):
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, train: bool) -> jnp.ndarray:
-        """A slightly deeper CNN with BatchNorm, good enough for >80% on CIFAR-10."""
+        """A slightly deeper CNN with normalization, good enough for >80% on CIFAR-10."""
 
         def conv_block(x, channels: int) -> jnp.ndarray:
-            x = nn.Conv(channels, (3, 3), padding="SAME", use_bias=False)(x)
-            x = nn.BatchNorm(use_running_average=not train)(x)
+            # Use GroupNorm (no running stats state) to keep things simple with TrainState.
+            x = nn.Conv(channels, (3, 3), padding="SAME")(x)
+            x = nn.GroupNorm(num_groups=8)(x)
             x = nn.relu(x)
-            x = nn.Conv(channels, (3, 3), padding="SAME", use_bias=False)(x)
-            x = nn.BatchNorm(use_running_average=not train)(x)
+            x = nn.Conv(channels, (3, 3), padding="SAME")(x)
+            x = nn.GroupNorm(num_groups=8)(x)
             x = nn.relu(x)
             return x
 
