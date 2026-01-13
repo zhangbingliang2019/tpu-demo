@@ -3,7 +3,7 @@ name = "tpu-demo"
 version = "0.1.0"
 description = "JAX DDPM diffusion model training on multi-host TPU (256 chips / 32 workers)"
 channels = ["conda-forge"]
-platforms = ["linux-64"]
+workspace = ["linux-64"]
 
 [dependencies]
 python = "3.10.*"
