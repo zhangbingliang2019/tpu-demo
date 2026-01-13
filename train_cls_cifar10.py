@@ -511,7 +511,7 @@ def main():
 
     # Model hyperparameters
     parser.add_argument(
-        "--base_channels", type=int, default=64, help="Base channels for CNN"
+        "--base_channels", type=int, default=128, help="Base channels for CNN"
     )
 
     # Logging
