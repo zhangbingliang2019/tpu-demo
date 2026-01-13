@@ -1687,6 +1687,46 @@ def main():
         )
 
     # =========================================================================
+    # FINAL SAMPLE GENERATION
+    # =========================================================================
+    # Always generate samples at the end of training (if not just generated)
+
+    if is_main_process() and (global_step % args.sample_every != 0):
+        logger.info("Generating final samples...")
+
+        state_unrep = flax.jax_utils.unreplicate(state)
+        rng, sample_rng = random.split(rng)
+        samples = generate_samples(
+            sample_rng,
+            state_unrep,
+            model,
+            schedule,
+            args.num_timesteps,
+            args.num_samples
+        )
+
+        samples_np = np.array(samples)
+        grid_size = int(math.sqrt(args.num_samples))
+        sample_path = os.path.join(
+            args.workdir, "samples", f"samples_final_step_{global_step:06d}.png"
+        )
+        save_image_grid(samples_np, sample_path, grid_size)
+        logger.sample(global_step, sample_path, args.num_samples)
+
+        if use_wandb:
+            samples_uint8 = ((samples_np + 1.0) * 127.5).clip(0, 255).astype(np.uint8)
+            wandb.log({
+                "samples/grid": wandb.Image(
+                    sample_path,
+                    caption=f"Final samples at step {global_step}"
+                ),
+                "samples/individual": [
+                    wandb.Image(samples_uint8[i], caption=f"Sample {i}")
+                    for i in range(min(8, len(samples_uint8)))
+                ],
+            }, step=global_step)
+
+    # =========================================================================
     # TRAINING COMPLETE
     # =========================================================================
 
